@@ -17,7 +17,7 @@ def transform_data(bronze_path) -> pd.DataFrame:
         roi_data = coin.get('roi') 
         if roi_data and isinstance(roi_data, dict):
             for key in roi_data:
-                coin[f'roi_{key}'] = coin['roi'][key]
+                coin[f'roi_{key}'] = roi_data[key]
         new_coins_list.append(coin)
 
 
