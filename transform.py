@@ -4,12 +4,12 @@ import os
 import datetime as dt
 from datetime import date
 
-def transform_data(json_raw_path) -> pd.DataFrame:
-    if not os.path.exists(json_raw_path):
-        print(f'Path {json_raw_path} does not exists')
+def transform_data(bronze_path) -> pd.DataFrame:
+    if not os.path.exists(bronze_path):
+        print(f'Path {bronze_path} does not exists')
         raise FileNotFoundError
     
-    with open(json_raw_path, mode='r') as file:
+    with open(bronze_path, mode='r') as file:
         coins = json.load(fp=file)
 
     new_coins_list = []
@@ -58,4 +58,4 @@ def transform_data(json_raw_path) -> pd.DataFrame:
     return df
 
 if __name__ == '__main__': 
-    transform_data('data/raw/coins_market.json')
+    transform_data('data/bronze/coins_market.json')
