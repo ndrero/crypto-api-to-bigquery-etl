@@ -4,7 +4,7 @@ import os
 import datetime as dt
 from datetime import date
 
-def transform_data(bronze_path) -> pd.DataFrame:
+def transform_data(bronze_path, silver_dir) -> str:
     if not os.path.exists(bronze_path):
         print(f'Path {bronze_path} does not exists')
         raise FileNotFoundError
@@ -54,8 +54,9 @@ def transform_data(bronze_path) -> pd.DataFrame:
     df['ingested_at'] = dt.datetime.now(tz=dt.timezone.utc)
     df['snapshot_date'] = date.today()
 
+    df.to_parquet(silver_dir, partition_cols=['snapshot_date'], engine='pyarrow')
 
-    return df
+    return silver_dir
 
 if __name__ == '__main__': 
-    transform_data('data/bronze/coins_market.json')
+    transform_data('data/bronze/coins_market.json', 'data/silver/coins_market/')
