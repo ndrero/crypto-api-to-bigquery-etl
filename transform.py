@@ -6,8 +6,7 @@ from datetime import date
 
 def transform_data(bronze_path, silver_dir) -> str:
     if not os.path.exists(bronze_path):
-        print(f'Path {bronze_path} does not exists')
-        raise FileNotFoundError
+        raise FileNotFoundError(f'File not found: {bronze_path}')
     
     with open(bronze_path, mode='r') as file:
         coins = json.load(fp=file)
