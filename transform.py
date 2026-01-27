@@ -18,6 +18,7 @@ def transform_data(bronze_path, silver_dir) -> str:
         if roi_data and isinstance(roi_data, dict):
             for key in roi_data:
                 coin[f'roi_{key}'] = roi_data[key]
+        coin.pop('roi')
         new_coins_list.append(coin)
 
 
