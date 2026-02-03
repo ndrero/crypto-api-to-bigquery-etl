@@ -11,17 +11,7 @@ def transform_data(bronze_path, silver_dir) -> str:
     with open(bronze_path, mode='r') as file:
         coins = json.load(fp=file)
 
-    new_coins_list = []
-    for coin in coins:
-        roi_data = coin.get('roi') 
-        if roi_data and isinstance(roi_data, dict):
-            for key in roi_data:
-                coin[f'roi_{key}'] = roi_data[key]
-        coin.pop('roi')
-        new_coins_list.append(coin)
-
-
-    df = pd.DataFrame(new_coins_list)
+    df = pd.json_normalize(coins, sep='_')
 
     df = df.rename(columns={
         "id": "coin_id",
