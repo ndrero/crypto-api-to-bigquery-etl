@@ -1,11 +1,12 @@
-import requests
 from requests.adapters import HTTPAdapter, Retry
-from itertools import batched
+from datetime import date
+from config import get_bucket, get_gcp_auth
+import requests
 import json
 import os
 
-def get_api_data(url, headers, file_name, total_retries : int = 5):
-   file_path = os.path.join('data/raw', file_name)
+def get_api_data(url, headers, file_name, local_dir, total_retries : int = 5):
+   file_path = os.path.join(local_dir, file_name)
    s = requests.Session()
 
    retries = Retry(total=total_retries, 
@@ -21,8 +22,16 @@ def get_api_data(url, headers, file_name, total_retries : int = 5):
       with open(file=f'{file_path}.json', mode='w') as file:
          json.dump(response.json(), fp=file, indent=4)
       
+   except requests.exceptions.HTTPError as e:
+      print(f'HTTP error (Status {response.status_code}) while accessing {url}: {e}')
+      raise
+
+   except requests.exceptions.ConnectionError as e:
+      print(f'Connection error: Couldn\'t reach API in {url}: {e}')
+      raise
+
    except Exception as e:
-      print(f'Error while getting API data: {e}')
+      print(f'API unexpected error : {e}')
       raise
 
 # def get_coins_ids(headers):
@@ -35,15 +44,40 @@ def get_api_data(url, headers, file_name, total_retries : int = 5):
 
 #    get_api_data(url, headers, 'coins_market_cap')
 
-def get_coins_market(headers):
+def get_coins_market(headers, local_dir):
       
    url = 'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd'
 
-   get_api_data(url, headers, 'coins_market')
+   get_api_data(url, headers, 'coins_market', local_dir)
 
+def load_raw_data(local_dir):
+   bucket = get_bucket('crypto-prj-bucket')
+
+   for file in os.listdir(local_dir):
+      local_file_path = os.path.join(local_dir, file)
+      load_file_path = f'bronze/{date.today()}/{file}'
+      blob = bucket.blob(load_file_path)
+
+      try:
+         if blob.exists():
+            blob.delete()
+
+         with open(local_file_path) as f:
+            blob.upload_from_string(f.read())
+
+      except FileNotFoundError:
+         print(f'File not found at {local_file_path}')
+
+      except PermissionError:
+         print(f'No permision to read file {local_file_path}')
+
+      except Exception as e:
+         print(f'Unexpected error while processing {blob}')
 
 if __name__ == '__main__':
-   os.makedirs('data/raw', exist_ok=True)
+   local_dir = 'data/bronze'
+   os.makedirs(local_dir, exist_ok=True)
    api_key = os.getenv('API_KEY')
    headers = {'x-cg-demo-api-key' : api_key}
-   get_coins_market(headers)
+   get_coins_market(headers, local_dir)
+   load_raw_data(local_dir)
