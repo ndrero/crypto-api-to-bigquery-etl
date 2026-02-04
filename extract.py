@@ -1,16 +1,9 @@
 from requests.adapters import HTTPAdapter, Retry
-from google.cloud import storage
-from google.oauth2 import service_account
-from dotenv import load_dotenv
 from datetime import date
+from config import get_bucket, get_gcp_auth
 import requests
 import json
 import os
-
-load_dotenv()
-
-credentials_path = os.environ['GOOGLE_APPLICATION_CREDENTIALS']
-project_id = os.environ['GCP_PROJECT_ID']
 
 def get_api_data(url, headers, file_name, local_dir, total_retries : int = 5):
    file_path = os.path.join(local_dir, file_name)
@@ -50,9 +43,7 @@ def get_coins_market(headers, local_dir):
    get_api_data(url, headers, 'coins_market', local_dir)
 
 def load_raw_data(local_dir):
-   credentials = service_account.Credentials.from_service_account_file(credentials_path)
-   client = storage.Client(project='crypto-etl-prj', credentials=credentials)
-   bucket = client.bucket('crypto-prj-bucket')
+   bucket = get_bucket('crypto-prj-bucket')
 
    for file in os.listdir(local_dir):
       local_file_path = os.path.join(local_dir, file)
