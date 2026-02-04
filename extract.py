@@ -22,8 +22,16 @@ def get_api_data(url, headers, file_name, local_dir, total_retries : int = 5):
       with open(file=f'{file_path}.json', mode='w') as file:
          json.dump(response.json(), fp=file, indent=4)
       
+   except requests.exceptions.HTTPError as e:
+      print(f'HTTP error (Status {response.status_code}) while accessing {url}: {e}')
+      raise
+
+   except requests.exceptions.ConnectionError as e:
+      print(f'Connection error: Couldn\'t reach API in {url}: {e}')
+      raise
+
    except Exception as e:
-      print(f'Error while getting API data: {e}')
+      print(f'API unexpected error : {e}')
       raise
 
 # def get_coins_ids(headers):
@@ -50,8 +58,21 @@ def load_raw_data(local_dir):
       load_file_path = f'bronze/{date.today()}/{file}'
       blob = bucket.blob(load_file_path)
 
-      with open(local_file_path) as f:
-         blob.upload_from_string(f.read())
+      try:
+         if blob.exists():
+            blob.delete()
+
+         with open(local_file_path) as f:
+            blob.upload_from_string(f.read())
+
+      except FileNotFoundError:
+         print(f'File not found at {local_file_path}')
+
+      except PermissionError:
+         print(f'No permision to read file {local_file_path}')
+
+      except Exception as e:
+         print(f'Unexpected error while processing {blob}')
 
 if __name__ == '__main__':
    local_dir = 'data/bronze'
