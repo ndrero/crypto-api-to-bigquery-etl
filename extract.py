@@ -1,9 +1,12 @@
 from requests.adapters import HTTPAdapter, Retry
 from datetime import date
-from config import get_bucket, get_gcp_auth
+from config import get_bucket
+from logging_config import get_logger
 import requests
 import json
 import os
+
+logger = get_logger(__name__)
 
 def get_api_data(url, headers, file_name, local_dir, total_retries : int = 5):
    file_path = os.path.join(local_dir, file_name)
@@ -15,23 +18,26 @@ def get_api_data(url, headers, file_name, local_dir, total_retries : int = 5):
    s.mount('https://', HTTPAdapter(max_retries=retries))
 
    try:
+      logger.info(f'Trying to get API data from {url}')
       response = s.get(url, headers=headers, timeout=30)
       
       response.raise_for_status()
 
+      logger.info('Sucessfully fetched API data')
       with open(file=f'{file_path}.json', mode='w') as file:
+         logger.info(f'Loading data into {file_path}')
          json.dump(response.json(), fp=file, indent=4)
       
    except requests.exceptions.HTTPError as e:
-      print(f'HTTP error (Status {response.status_code}) while accessing {url}: {e}')
+      logger.error(f'HTTP error (Status {response.status_code}) while accessing {url}: {e}')
       raise
 
    except requests.exceptions.ConnectionError as e:
-      print(f'Connection error: Couldn\'t reach API in {url}: {e}')
+      logger.error(f'Connection error: Couldn\'t reach API in {url}: {e}')
       raise
 
    except Exception as e:
-      print(f'API unexpected error : {e}')
+      logger.error(f'API unexpected error : {e}')
       raise
 
 # def get_coins_ids(headers):
@@ -54,25 +60,29 @@ def load_raw_data(local_dir):
    bucket = get_bucket('crypto-prj-bucket')
 
    for file in os.listdir(local_dir):
+      logger.info(f'Starting {file} load into bronze storage bucket')
       local_file_path = os.path.join(local_dir, file)
       load_file_path = f'bronze/{date.today()}/{file}'
       blob = bucket.blob(load_file_path)
 
       try:
          if blob.exists():
+            logger.info(f'Deleting previous bronze storage blob')
             blob.delete()
 
          with open(local_file_path) as f:
+            logger.info(f'Loading blob into bucket')
             blob.upload_from_string(f.read())
 
       except FileNotFoundError:
-         print(f'File not found at {local_file_path}')
+         logger.error(f'File not found at {local_file_path}')
 
       except PermissionError:
-         print(f'No permision to read file {local_file_path}')
+         logger.error(f'No permision to read file {local_file_path}')
 
       except Exception as e:
-         print(f'Unexpected error while processing {blob}')
+         logger.error(f'Unexpected error while processing {blob.name}: {e}')
+         raise
 
 if __name__ == '__main__':
    local_dir = 'data/bronze'
