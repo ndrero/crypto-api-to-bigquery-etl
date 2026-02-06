@@ -39,7 +39,7 @@ def get_api_data(url, headers, file_name, local_dir, total_retries : int = 5):
    except Exception as e:
       logger.error(f'API unexpected error : {e}')
       raise
-   
+
 def get_coins_market(headers, local_dir):
       
    url = 'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd'
@@ -74,10 +74,12 @@ def load_raw_data(local_dir):
          logger.error(f'Unexpected error while processing {blob.name}: {e}')
          raise
 
-if __name__ == '__main__':
-   local_dir = 'data/bronze'
+def extract_and_load_bronze(local_dir):
    os.makedirs(local_dir, exist_ok=True)
    api_key = os.getenv('API_KEY')
    headers = {'x-cg-demo-api-key' : api_key}
    get_coins_market(headers, local_dir)
    load_raw_data(local_dir)
+
+if __name__ == '__main__':
+   extract_and_load_bronze('data/bronze')
