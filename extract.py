@@ -60,9 +60,8 @@ def load_raw_data(local_dir):
             logger.info(f'Deleting previous bronze storage blob')
             blob.delete()
 
-         with open(local_file_path) as f:
-            logger.info(f'Loading blob into bucket')
-            blob.upload_from_string(f.read())
+         logger.info(f'Loading blob into bucket')
+         blob.upload_from_filename(local_file_path)
 
       except FileNotFoundError:
          logger.error(f'File not found at {local_file_path}')
