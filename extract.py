@@ -39,17 +39,7 @@ def get_api_data(url, headers, file_name, local_dir, total_retries : int = 5):
    except Exception as e:
       logger.error(f'API unexpected error : {e}')
       raise
-
-# def get_coins_ids(headers):
-#    url = 'https://api.coingecko.com/api/v3/coins/list'
-
-#    get_api_data(url, headers, 'coins_ids')
-
-# def get_coins_market_cap(headers):
-#    url = 'https://api.coingecko.com/api/v3/global'
-
-#    get_api_data(url, headers, 'coins_market_cap')
-
+   
 def get_coins_market(headers, local_dir):
       
    url = 'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd'
