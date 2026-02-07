@@ -45,9 +45,9 @@ def transform_data(bronze_path, silver_dir) -> str:
     )
 
     df["ingested_at"] = dt.datetime.now(tz=dt.timezone.utc)
-    df["snapshot_date"] = date.today()
+    df["load_dt"] = date.today()
 
-    df.to_parquet(silver_dir, partition_cols=["snapshot_date"], engine="pyarrow")
+    df.to_parquet(silver_dir, partition_cols=["load_dt"], engine="pyarrow")
 
     return silver_dir
 
