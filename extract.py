@@ -9,10 +9,8 @@ import os
 logger = get_logger(__name__)
 
 
-def get_api_data(url, headers, file_name, local_dir, total_retries: int = 5):
-    file_path = os.path.join(local_dir, file_name)
+def get_api_data(url, headers, total_retries: int = 5):
     s = requests.Session()
-
     retries = Retry(
         total=total_retries,
         backoff_factor=1,
@@ -27,9 +25,8 @@ def get_api_data(url, headers, file_name, local_dir, total_retries: int = 5):
         response.raise_for_status()
 
         logger.info("Sucessfully fetched API data")
-        with open(file=f"{file_path}.json", mode="w") as file:
-            logger.info(f"Loading data into {file_path}")
-            json.dump(response.json(), fp=file, indent=4)
+
+        return response
 
     except requests.exceptions.HTTPError as e:
         logger.error(
@@ -46,48 +43,31 @@ def get_api_data(url, headers, file_name, local_dir, total_retries: int = 5):
         raise
 
 
-def get_coins_market(headers, local_dir):
-
-    url = "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd"
-
-    get_api_data(url, headers, "coins_market", local_dir)
-
-
-def load_raw_data(local_dir):
+def load_raw_data(response, file_name):
     bucket = get_bucket("crypto-prj-bucket")
 
-    for file in os.listdir(local_dir):
-        logger.info(f"Starting {file} load into bronze storage bucket")
-        local_file_path = os.path.join(local_dir, file)
-        load_file_path = f"bronze/{date.today()}/{file}"
-        blob = bucket.blob(load_file_path)
+    logger.info(f"Starting {file_name} load into bronze storage bucket")
+    load_file_path = f"bronze/{date.today()}/{file_name}.json"
+    blob = bucket.blob(load_file_path)
 
-        try:
-            if blob.exists():
-                logger.info(f"Deleting previous bronze storage blob")
-                blob.delete()
+    try:
+        logger.info(f"Loading blob into bucket")
+        blob.upload_from_string(
+            response.text, content_type=response.headers.get("Content-type")
+        )
 
-            logger.info(f"Loading blob into bucket")
-            blob.upload_from_filename(local_file_path)
-
-        except FileNotFoundError:
-            logger.error(f"File not found at {local_file_path}")
-
-        except PermissionError:
-            logger.error(f"No permision to read file {local_file_path}")
-
-        except Exception as e:
-            logger.error(f"Unexpected error while processing {blob.name}: {e}")
-            raise
+    except Exception as e:
+        logger.error(f"Unexpected error while processing {blob.name}: {e}")
+        raise
 
 
-def extract_and_load_bronze(local_dir):
-    os.makedirs(local_dir, exist_ok=True)
+def extract_and_load_bronze(file_name):
+    url = "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd"
     api_key = os.getenv("API_KEY")
     headers = {"x-cg-demo-api-key": api_key}
-    get_coins_market(headers, local_dir)
-    load_raw_data(local_dir)
+    response = get_api_data(url, headers)
+    load_raw_data(response, file_name)
 
 
 if __name__ == "__main__":
-    extract_and_load_bronze("data/bronze")
+    extract_and_load_bronze("coins_market")
