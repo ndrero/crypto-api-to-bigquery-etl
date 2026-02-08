@@ -1,18 +1,16 @@
 import pandas as pd
 import json
-import os
 import datetime as dt
+from config import get_bucket
 from datetime import date
 
 
-def transform_data(bronze_path, silver_dir) -> str:
-    if not os.path.exists(bronze_path):
-        raise FileNotFoundError(f"File not found: {bronze_path}")
-
-    with open(bronze_path, mode="r") as file:
-        coins = json.load(fp=file)
-
-    df = pd.json_normalize(coins, sep="_")
+def process_bronze_to_silver(target_date, file_name) -> str:
+    bucket = get_bucket("crypto-prj-bucket")
+    blob = bucket.get_blob(f"bronze/{target_date}/{file_name}.json")
+    data = blob.download_as_text()
+    json_data = json.loads(data)
+    df = pd.json_normalize(json_data)
 
     df = df.rename(
         columns={
@@ -45,12 +43,15 @@ def transform_data(bronze_path, silver_dir) -> str:
     )
 
     df["ingested_at"] = dt.datetime.now(tz=dt.timezone.utc)
-    df["load_dt"] = date.today()
 
-    df.to_parquet(silver_dir, partition_cols=["load_dt"], engine="pyarrow")
+    df["reference_dt"] = target_date
 
-    return silver_dir
+    df.to_parquet(
+        "gcs://crypto-prj-bucket/silver/crypto_market/",
+        partition_cols=["reference_dt"],
+        engine="pyarrow",
+    )
 
 
 if __name__ == "__main__":
-    transform_data("data/bronze/coins_market.json", "data/silver/coins_market/")
+    process_bronze_to_silver("2026-02-04", "coins_market")
