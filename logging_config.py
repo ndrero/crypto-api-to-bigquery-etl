@@ -1,10 +1,15 @@
 import logging
+import os
 from logging.handlers import RotatingFileHandler
 
 def get_logger(name):
    logger = logging.getLogger(name)
 
    if not logger.handlers:
+      log_dir = 'logs'
+      if not os.path.exists(log_dir):
+         os.makedirs(log_dir)
+
       logger.setLevel(level=logging.DEBUG)
 
       ch = logging.StreamHandler()
