@@ -43,11 +43,11 @@ def get_api_data(url, headers, total_retries: int = 5):
         raise
 
 
-def load_raw_data(response, file_name):
+def load_raw_data(response, file_name, reference_date : date):
     bucket = get_bucket("crypto-prj-bucket")
 
     logger.info(f"Starting {file_name} load into bronze storage bucket")
-    load_file_path = f"bronze/{date.today()}/{file_name}.json"
+    load_file_path = f"bronze/{reference_date}/{file_name}.json"
     blob = bucket.blob(load_file_path)
 
     try:
@@ -61,12 +61,14 @@ def load_raw_data(response, file_name):
         raise
 
 
-def extract_and_load_bronze(file_name):
+def extract_and_load_bronze(file_name, reference_date = None):
+    if reference_date is None:
+        reference_date = date.today()
     url = "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd"
     api_key = os.getenv("API_KEY")
     headers = {"x-cg-demo-api-key": api_key}
     response = get_api_data(url, headers)
-    load_raw_data(response, file_name)
+    load_raw_data(response, file_name, reference_date)
 
 
 if __name__ == "__main__":
