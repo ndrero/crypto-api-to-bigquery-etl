@@ -1,23 +1,11 @@
 import os
 from dotenv import load_dotenv
-from google.cloud import storage
-from google.cloud import bigquery
-from google.oauth2 import service_account
 
 load_dotenv()
 
-project_id = os.environ["GCP_PROJECT_ID"]
-credentials_path = os.environ["GOOGLE_APPLICATION_CREDENTIALS"]
+MARKET_URL = "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd"
+API_KEY = os.getenv("API_KEY")
+HEADERS = {"x-cg-demo-api-key": API_KEY}
 
-
-def get_credentials():
-    return service_account.Credentials.from_service_account_file(credentials_path)
-
-
-def get_bucket(bucket_name):
-    client = storage.Client(project=project_id, credentials=get_credentials())
-    return client.bucket(bucket_name)
-
-
-def get_bq_client():
-    return bigquery.Client(project=project_id, credentials=get_credentials())
+PROJECT_ID = os.getenv("GCP_PROJECT_ID")
+CREDENTIALS_PATH = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")

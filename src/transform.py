@@ -1,8 +1,7 @@
 import pandas as pd
 import json
 import datetime as dt
-from config import get_bucket
-from datetime import date
+from gcp_utils import get_bucket
 
 
 def process_bronze_to_silver(target_date, file_name) -> str:
@@ -54,4 +53,4 @@ def process_bronze_to_silver(target_date, file_name) -> str:
 
 
 if __name__ == "__main__":
-    process_bronze_to_silver("2026-02-05", "coins_market")
+    process_bronze_to_silver(dt.date.today(), "coins_market")

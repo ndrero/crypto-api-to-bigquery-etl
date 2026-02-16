@@ -1,10 +1,9 @@
 from requests.adapters import HTTPAdapter, Retry
 from datetime import date
-from config import get_bucket
+from config import MARKET_URL, HEADERS
+from gcp_utils import get_bucket
 from logging_config import get_logger
 import requests
-import json
-import os
 
 logger = get_logger(__name__)
 
@@ -55,6 +54,7 @@ def load_raw_data(response, file_name, reference_date: date):
         blob.upload_from_string(
             response.text, content_type=response.headers.get("Content-type")
         )
+        logger.info("Successfully loaded blob into bucket")
 
     except Exception as e:
         logger.error(f"Unexpected error while processing {blob.name}: {e}")
@@ -62,12 +62,9 @@ def load_raw_data(response, file_name, reference_date: date):
 
 
 def extract_and_load_bronze(file_name, reference_date):
-    url = "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd"
-    api_key = os.getenv("API_KEY")
-    headers = {"x-cg-demo-api-key": api_key}
-    response = get_api_data(url, headers)
+    response = get_api_data(MARKET_URL, HEADERS)
     load_raw_data(response, file_name, reference_date)
 
 
 if __name__ == "__main__":
-    extract_and_load_bronze("coins_market")
+    extract_and_load_bronze("coins_market", date.today())

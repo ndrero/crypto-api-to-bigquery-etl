@@ -1,7 +1,7 @@
 import os
 from logging_config import get_logger
-from dotenv import load_dotenv
-from config import get_bq_client
+from gcp_utils import get_bq_client
+from config import PROJECT_ID
 
 logger = get_logger(__name__)
 
@@ -24,6 +24,4 @@ def load_gold_to_bigquery(sql_path, project_id):
 
 
 if __name__ == "__main__":
-    load_dotenv()
-    project_id = os.getenv("GCP_PROJECT_ID")
-    load_gold_to_bigquery("./sql/", project_id)
+    load_gold_to_bigquery("./sql/", PROJECT_ID)
