@@ -16,7 +16,7 @@ def get_logger(name):
         ch.setLevel(level=logging.INFO)
 
         fh = RotatingFileHandler(
-            filename="logs/job.log", maxBytes=10000, backupCount=3, mode="a"
+            filename="logs/job.log", maxBytes=10_000_000, backupCount=3, mode="a"
         )
 
         formatter = logging.Formatter(
