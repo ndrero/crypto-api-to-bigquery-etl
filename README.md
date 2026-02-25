@@ -2,97 +2,138 @@
 
 ## Overview
 
-This project is an end-to-end Data Engineering pipeline designed to extract, transform, and load (ETL) cryptocurrency market data. It consumes data from the CoinGecko API, processes the raw information, and stores it in Google BigQuery following the **Medallion Architecture**.
+An end-to-end Data Engineering pipeline that extracts, transforms, and loads cryptocurrency market data from the CoinGecko API into Google BigQuery, following the **Medallion Architecture** (Bronze → Silver → Gold).
 
-The primary goal is to build a reliable, structured history of market metrics (price, volume, market cap) for Business Intelligence (BI) and Data Science applications.
+The primary goal is to build a reliable, structured history of market metrics (price, volume, market cap, ROI) for Business Intelligence (BI) and Data Science applications.
 
 ## Architecture
 
-The pipeline is built using **Python** and **Google Cloud Platform (GCP)** services, ensuring scalability and clear separation of concerns.
-
 <p align="center">
-<img src="./assets/architeture-diagram.png" alt="Project Architecture Diagram">
+  <img src="./assets/architeture-diagram.png" alt="Project Architecture Diagram">
 </p>
 
-### Data Flow:
+### Data Flow
 
-1. **Extract (Bronze):** Collects raw JSON data from the API with a robust backoff strategy and stores it in Google Cloud Storage (Bronze Bucket).
-2. **Transform (Silver):** Creates a BigQuery **External Table** mapping the GCS blobs. This allows SQL access to raw data without duplicating storage costs.
-3. **Load (Gold):** Executes dynamic **SQL MERGE** scripts to consolidate transformed data into a native BigQuery table (One Big Table - OBT), ensuring data uniqueness (Upsert).
+1. **Extract → Bronze:** Fetches raw JSON from the CoinGecko API with retry/backoff strategy and stores it partitioned by date in GCS (`bronze/YYYY-MM-DD/`).
+2. **Transform → Silver:** Normalizes the JSON, renames columns, enforces a PyArrow schema (with proper `NUMERIC`/`BIGNUMERIC` precision), and saves as Parquet in GCS (`silver/crypto_market/YYYY-MM-DD.parquet`).
+3. **Load → Gold:** Loads the Parquet file into a partitioned and clustered BigQuery table, replacing only the target date partition (idempotent).
 
 ---
 
 ## Tech Stack
 
-* **Language:** Python 3.10+
-* **Cloud Provider:** Google Cloud Platform (GCP)
-* **Data Lake:** Google Cloud Storage (GCS)
-* **Data Warehouse:** Google BigQuery
-* **Orchestration:** Prepared for Apache Airflow
-* **Logging:** RotatingFileHandler for execution tracking
+| Layer | Technology |
+|---|---|
+| Language | Python 3.12+ |
+| Cloud Provider | Google Cloud Platform (GCP) |
+| Data Lake | Google Cloud Storage (GCS) |
+| Data Warehouse | Google BigQuery |
+| Data Processing | Pandas + PyArrow |
+| Logging | RotatingFileHandler + Google Cloud Logging |
+| Orchestration | Prepared for Apache Airflow |
+| Version Control | GitHub |
+
+---
+
+## Project Structure
+
+```
+crypto-api-to-bigquery-etl/
+├── src/
+│   ├── utils/
+│   │   ├── config.py          # env vars, column mapping, decimal columns
+│   │   ├── schema.py          # PyArrow schema, BigQuery schema, job config
+│   │   ├── gcp_utils.py       # GCS and BigQuery client helpers
+│   │   └── logging_config.py  # RotatingFileHandler + Cloud Logging setup
+│   ├── extract.py             # API extraction with retry strategy
+│   ├── transform.py           # Bronze → Silver transformation
+│   ├── load.py                # Silver → Gold BigQuery load
+│   └── main.py                # Pipeline entry point
+├── assets/
+├── .env.example
+├── .gitignore
+├── requirements.txt
+└── README.md
+```
 
 ---
 
 ## Module Details
 
-### 1. Execution Entry Point (`main.py`)
+### `main.py` — Entry Point
+Orchestrates the full pipeline for a given `target_date`, ensuring **idempotency** and enabling backfill of historical dates.
 
-Centralizes the pipeline execution. It uses a `target_date` parameter to ensure **idempotency**, allowing for easy re-processing of specific dates (Backfill).
+### `extract.py` — Bronze Layer
+- Implements `HTTPAdapter` with `Retry` strategy for rate limit (429) and server error resilience.
+- Saves raw JSON to GCS with date partitioning.
 
-### 2. Extraction Layer (`extract.py`)
+### `transform.py` — Silver Layer
+- Normalizes nested JSON (`roi_times`, `roi_currency`, `roi_percentage`) via `pd.json_normalize`.
+- Renames columns to a standardized schema (`COLUMNS_MAPPING`).
+- Converts decimal columns to `Decimal` with proper precision using `ROUND_HALF_UP`.
+- Converts timestamp columns to UTC-aware datetime.
+- Enforces PyArrow schema before writing Parquet to GCS.
 
-* **Resiliency:** Implements `HTTPAdapter` with a `Retry` strategy to handle API Rate Limits (429 errors) and server instabilities.
-* **Partitioning:** Data is saved in GCS using logical date partitioning: `bronze/YYYY-MM-DD/`.
+### `load.py` — Gold Layer
+- Loads Parquet from GCS directly into BigQuery (no intermediate download).
+- Uses `WRITE_TRUNCATE` scoped to the target partition (`table$YYYYMMDD`) for safe re-runs.
+- Table is partitioned by `reference_dt` (DAY) and clustered by `coin_id`.
 
-### 3. Loading Layer (`load.py`)
+---
 
-* **Dynamic Execution:** Reads external `.sql` files and injects environment variables (Project ID, Datasets) at runtime.
-* **Merge Logic:** Uses the Silver layer as a source to update the Gold native table.
+## Schema Design
+
+| Column | BigQuery Type | Notes |
+|---|---|---|
+| `coin_id` | STRING | |
+| `market_cap_rank` | INT64 | |
+| `current_price_usd` | BIGNUMERIC | High precision for low-value coins (e.g. SHIB) |
+| `market_cap_usd` | NUMERIC | |
+| `circulating_supply` | BIGNUMERIC | Large integer precision |
+| `all_time_high_usd` | BIGNUMERIC | |
+| `all_time_low_usd` | BIGNUMERIC | |
+| `*_pct` columns | NUMERIC | Percentage changes |
+| `*_date` columns | TIMESTAMP | UTC |
+| `reference_dt` | DATE | Partition key |
 
 ---
 
 ## How to Run
 
-### Installation
+### 1. Clone and install
 
-1. Clone the repository:
 ```bash
-git clone https://github.com/your-user/crypto-api-to-bigquery-etl.git
+git clone https://github.com/ndrero/crypto-api-to-bigquery-etl.git
 cd crypto-api-to-bigquery-etl
-```
-
-
-2. Install dependencies:
-```bash
 pip install -r requirements.txt
 ```
 
+### 2. Configure environment
 
-
-### Configuration
-
-Create a `.env` file in the root directory:
+Create a `.env` file based on `.env.example`:
 
 ```env
 API_KEY=your_coingecko_key
 GCP_PROJECT_ID=your_gcp_project
-GOOGLE_APPLICATION_CREDENTIALS=path/to/your/service-account.json
+BUCKET_NAME=your_gcs_bucket
+DATASET=your_bq_dataset
+TABLE_NAME=your_bq_table
+CREDENTIALS_PATH=path/to/service-account.json
 ```
 
-### Execution
-
-Run the main script:
+### 3. Run
 
 ```bash
-python main.py
+python src/main.py
 ```
 
-*Logs will be generated in the `/logs` folder with automatic rotation.*
+Logs are written to `/logs/job.log` with automatic rotation (10MB, 3 backups) and streamed to Google Cloud Logging.
 
-
+---
 
 ## Roadmap
 
-* [ ] Implement full orchestration with **Apache Airflow**.
-* [ ] Add **Terraform** scripts for infrastructure provisioning.
-* [ ] Implement Data Quality checks with **Great Expectations**.
+- [ ] Full orchestration with **Apache Airflow**
+- [ ] Infrastructure as Code with **Terraform**
+- [ ] Data Quality checks with **Great Expectations**
+- [ ] Unit tests with **pytest**
