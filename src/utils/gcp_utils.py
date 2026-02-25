@@ -1,7 +1,7 @@
 from google.cloud import storage
 from google.cloud import bigquery
 from google.oauth2 import service_account
-from config import PROJECT_ID, CREDENTIALS_PATH
+from utils.config import PROJECT_ID, CREDENTIALS_PATH
 
 
 def get_credentials():

@@ -1,7 +1,7 @@
 from requests.adapters import HTTPAdapter, Retry
 from datetime import date
-from config import MARKET_URL, HEADERS
-from gcp_utils import get_bucket
+from utils.config import MARKET_URL, HEADERS
+from utils.gcp_utils import get_bucket
 from logging_config import get_logger
 import requests
 
