@@ -20,7 +20,7 @@ def main():
         process_bronze_to_silver(target_date, file_name)
 
         logger.info("Starting data loading")
-        load_gold_to_bigquery("./sql/", PROJECT_ID)
+        load_gold_to_bigquery(target_date)
     except Exception as e:
         logger.error(f"An error occurred at ETL: {e}")
 
