@@ -13,7 +13,7 @@ def main():
 
     try:
         logger.info("Starting data extraction")
-        extract_and_load_bronze(file_name)
+        extract_and_load_bronze(file_name, target_date)
 
         logger.info("Starting data transformation")
         process_bronze_to_silver(target_date, file_name)
