@@ -10,10 +10,10 @@ from utils.schema import pq_schema
 
 logger = get_logger(__name__)
 
-def to_decimal(x, places = 9):
+def to_decimal(x, places = -9):
     if pd.isna(x): 
         return None
-    quantizer = Decimal(10) ** -9
+    quantizer = Decimal(10) ** places
     return Decimal(str(x)).quantize(quantizer, rounding=ROUND_HALF_UP)
 
 def process_bronze_to_silver(target_date, file_name) -> str:
@@ -46,13 +46,13 @@ def process_bronze_to_silver(target_date, file_name) -> str:
             logger.info(f"Dropped {initial_rows - df.shape[0]} duplicate rows")
 
         for col in DECIMAL_COLUMNS:
-            df[col] = df[col].apply(lambda x: to_decimal(x, places=38))
+            df[col] = df[col].apply(lambda x: to_decimal(x))
 
         df[TIMESTAMP_COLUMNS] = df[TIMESTAMP_COLUMNS].apply(pd.to_datetime, errors="coerce", utc=True)
 
         df["ingested_at"] = dt.datetime.now(tz=dt.timezone.utc)
 
-        df["reference_dt"] = target_date
+        df["reference_dt"] = pd.to_datetime(target_date).date()
 
         logger.info(f"Dataframe transformation conclude. Final shape: {df.shape}")
 
