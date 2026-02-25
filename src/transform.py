@@ -3,7 +3,7 @@ import json
 import datetime as dt
 import numpy as np
 from utils.gcp_utils import get_bucket
-from logging_config import get_logger
+from utils.logging_config import get_logger
 from decimal import Decimal, ROUND_HALF_UP
 from utils.config import BUCKET_NAME, DECIMAL_COLUMNS, COLUMNS_MAPPING, TIMESTAMP_COLUMNS
 from utils.schema import pq_schema
