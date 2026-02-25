@@ -2,7 +2,6 @@ from extract import extract_and_load_bronze
 from transform import process_bronze_to_silver
 from load import load_gold_to_bigquery
 from utils.logging_config import get_logger
-from utils.config import PROJECT_ID
 from datetime import date
 
 
