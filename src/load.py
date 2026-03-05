@@ -1,7 +1,7 @@
 from google.cloud import bigquery
-from utils.logging_config import get_logger
-from utils.gcp_utils import get_bq_client
-from utils.config import PROJECT_ID, BUCKET_NAME, DATASET, TABLE_NAME
+from src.utils.logging_config import get_logger
+from src.utils.gcp_utils import get_bq_client
+from src.utils.config import PROJECT_ID, BUCKET_NAME, DATASET, TABLE_NAME
 from datetime import date
 from utils.schema import bq_schema
 

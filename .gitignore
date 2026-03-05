@@ -212,3 +212,6 @@ __marimo__/
 
 #Logs
 logs/
+
+#Airflow
+config/airflow.cfg

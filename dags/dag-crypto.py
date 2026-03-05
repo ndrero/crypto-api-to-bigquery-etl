@@ -23,15 +23,15 @@ with DAG(
 ) as dag:
     
     @task
-    def extract(ds):
+    def extract(*, ds):
         extract_and_load_bronze(file_name="coins_market", reference_date=ds)
 
     @task 
-    def transform(ds):
+    def transform(*, ds):
         process_bronze_to_silver(target_date=ds, file_name="coins_market")
 
     @task 
-    def load(ds):
+    def load(*, ds):
         load_gold_to_bigquery(ds)
 
-    extract("{{ ds }}") >> transform("{{ ds }}") >> load("{{ ds }}")
+    extract(ds="{{ ds }}") >> transform(ds="{{ ds }}") >> load(ds="{{ ds }}")
