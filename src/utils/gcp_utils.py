@@ -1,20 +1,23 @@
-from google.cloud import storage, bigquery, logging
-from google.oauth2 import service_account
-from utils.config import PROJECT_ID, CREDENTIALS_PATH
+from airflow.providers.google.cloud.hooks.bigquery import BigQueryHook
+from airflow.providers.google.cloud.hooks.gcs import GCSHook
+from airflow.providers.google.cloud.hooks.cloud_logging import CloudLoggingHook
+import google.cloud.logging
 
 
-def get_credentials():
-    return service_account.Credentials.from_service_account_file(CREDENTIALS_PATH)
+def get_bucket(bucket_name) -> GCSHook:
+    hook = GCSHook(gcp_conn_id='google_cloud_default')
+    return hook.get_conn().bucket(bucket_name)
 
 
-def get_bucket(bucket_name):
-    client = storage.Client(project=PROJECT_ID, credentials=get_credentials())
-    return client.bucket(bucket_name)
+def get_bq_client() -> BigQueryHook:
+    hook = BigQueryHook(gcp_conn_id='google_cloud_default')
+    return hook.get_client()  
 
 
-def get_bq_client():
-    return bigquery.Client(project=PROJECT_ID, credentials=get_credentials())
-
-
-def get_logging_client():
-    return logging.Client(credentials=get_credentials())
+def get_logging_client() -> CloudLoggingHook:
+    hook = CloudLoggingHook(gcp_conn_id='google_cloud_default')
+    client = google.cloud.logging.Client(
+        project = hook.project_id,
+        credentials = hook.get_credentials()
+    )
+    return client

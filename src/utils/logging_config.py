@@ -2,7 +2,6 @@ import logging
 import os
 from utils.gcp_utils import get_logging_client
 from logging.handlers import RotatingFileHandler
-from google.cloud import logging as cloud_logging
 from google.cloud.logging.handlers import CloudLoggingHandler
 
 def get_logger(name):
